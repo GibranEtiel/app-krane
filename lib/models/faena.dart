@@ -76,6 +76,7 @@ class FaenaDetalle extends Faena {
   final String observaciones;
   final List<ItemFaena> items;
   final ClienteFaena cliente;
+  final String trackingUrl;
 
   FaenaDetalle({
     required super.id,
@@ -88,6 +89,7 @@ class FaenaDetalle extends Faena {
     required this.observaciones,
     required this.items,
     required this.cliente,
+    required this.trackingUrl,
   }) : super(equipos: items.map((i) => i.nombreEquipo).toList());
 
   factory FaenaDetalle.fromJson(Map<String, dynamic> json) {
@@ -104,6 +106,7 @@ class FaenaDetalle extends Faena {
           .map((e) => ItemFaena.fromJson(e as Map<String, dynamic>))
           .toList(),
       cliente: ClienteFaena.fromJson(json['cliente'] as Map<String, dynamic>),
+      trackingUrl: json['tracking_url'] as String,
     );
   }
 }

@@ -6,6 +6,8 @@ import '../models/faena.dart';
 import '../services/auth_service.dart';
 import '../services/faena_service.dart';
 import '../widgets/estado_badge.dart';
+import 'configuracion_screen.dart';
+import 'documentos_screen.dart';
 import 'faena_detail_screen.dart';
 
 class FaenasScreen extends StatefulWidget {
@@ -41,6 +43,20 @@ class _FaenasScreenState extends State<FaenasScreen> {
       appBar: AppBar(
         title: const Text('Mis Faenas'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.folder_shared_outlined),
+            tooltip: 'Mis Documentos',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const DocumentosScreen()),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined),
+            tooltip: 'Configurar servidor',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const ConfiguracionScreen()),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: 'Cerrar sesión',

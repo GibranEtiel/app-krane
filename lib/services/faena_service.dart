@@ -24,4 +24,14 @@ class FaenaService {
       data: {'estado_terreno': nuevoEstado},
     );
   }
+
+  /// Reporta la posición GPS actual del operador. El backend solo la acepta
+  /// mientras la faena está "En Traslado"; en cualquier otro estado responde
+  /// 404 y el llamador simplemente debe dejar de enviarla.
+  Future<void> actualizarUbicacion(int id, double lat, double lng) async {
+    await client.dio.patch(
+      '/faenas/$id/ubicacion/',
+      data: {'operador_lat': lat, 'operador_lng': lng},
+    );
+  }
 }

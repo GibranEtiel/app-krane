@@ -7,6 +7,7 @@ import 'screens/faenas_screen.dart';
 import 'screens/login_screen.dart';
 import 'services/api_client.dart';
 import 'services/auth_service.dart';
+import 'services/documento_service.dart';
 import 'services/faena_service.dart';
 
 Future<void> main() async {
@@ -29,6 +30,9 @@ class KraneOperadorApp extends StatelessWidget {
               Provider<ApiClient>(create: (_) => ApiClient(auth)),
               ProxyProvider<ApiClient, FaenaService>(
                 update: (_, apiClient, _) => FaenaService(apiClient),
+              ),
+              ProxyProvider<ApiClient, DocumentoService>(
+                update: (_, apiClient, _) => DocumentoService(apiClient),
               ),
             ],
             child: MaterialApp(

@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 
-import '../config/api_config.dart';
 import 'auth_service.dart';
 
 /// Cliente HTTP compartido: agrega el JWT a cada request y, si el backend
@@ -10,7 +9,7 @@ class ApiClient {
   late final Dio dio;
 
   ApiClient(this.authService) {
-    dio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+    dio = Dio(BaseOptions(baseUrl: authService.baseUrl));
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
@@ -40,5 +39,10 @@ class ApiClient {
         handler.next(error);
       },
     ));
+  }
+
+  /// Aplica un cambio de servidor sin tener que reiniciar la app.
+  void actualizarBaseUrl(String nuevaUrl) {
+    dio.options.baseUrl = nuevaUrl;
   }
 }

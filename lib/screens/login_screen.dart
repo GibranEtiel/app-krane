@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
+import 'configuracion_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -46,7 +47,20 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF16181D),
       body: SafeArea(
-        child: Center(
+        child: Stack(
+          children: [
+            Positioned(
+              top: 4,
+              right: 4,
+              child: IconButton(
+                icon: const Icon(Icons.settings_outlined, color: Colors.white54),
+                tooltip: 'Configurar servidor',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const ConfiguracionScreen()),
+                ),
+              ),
+            ),
+            Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 28),
             child: Form(
@@ -109,6 +123,8 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
+            ),
+          ],
         ),
       ),
     );

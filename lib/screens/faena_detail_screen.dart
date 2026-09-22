@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -19,6 +23,7 @@ class FaenaDetailScreen extends StatefulWidget {
 class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
   late Future<FaenaDetalle> _futureDetalle;
   bool _actualizando = false;
+  Timer? _timerUbicacion;
   final _formatoFecha = DateFormat('EEEE dd/MM/yyyy · HH:mm', 'es_CL');
 
   @override
@@ -27,8 +32,65 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
     _cargar();
   }
 
+  @override
+  void dispose() {
+    _timerUbicacion?.cancel();
+    super.dispose();
+  }
+
   void _cargar() {
     _futureDetalle = context.read<FaenaService>().detalleFaena(widget.faenaId);
+    _futureDetalle
+        .then((faena) => _sincronizarSeguimiento(faena.estadoTerreno))
+        .catchError((_) {});
+  }
+
+  /// Mantiene el envío de ubicación encendido solo mientras la faena está
+  /// "En Traslado" (única condición que el backend acepta).
+  void _sincronizarSeguimiento(String estadoTerreno) {
+    if (estadoTerreno == 'en_traslado') {
+      _iniciarSeguimiento();
+    } else {
+      _detenerSeguimiento();
+    }
+  }
+
+  Future<void> _iniciarSeguimiento() async {
+    if (_timerUbicacion != null) return;
+
+    var permiso = await Geolocator.checkPermission();
+    if (permiso == LocationPermission.denied) {
+      permiso = await Geolocator.requestPermission();
+    }
+    if (permiso == LocationPermission.denied || permiso == LocationPermission.deniedForever) {
+      return;
+    }
+
+    _enviarUbicacionActual();
+    _timerUbicacion = Timer.periodic(const Duration(seconds: 15), (_) => _enviarUbicacionActual());
+  }
+
+  void _detenerSeguimiento() {
+    _timerUbicacion?.cancel();
+    _timerUbicacion = null;
+  }
+
+  Future<void> _enviarUbicacionActual() async {
+    final faenaService = context.read<FaenaService>();
+    try {
+      final posicion = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
+      );
+      await faenaService.actualizarUbicacion(
+        widget.faenaId,
+        posicion.latitude,
+        posicion.longitude,
+      );
+    } catch (_) {
+      // Sin GPS, sin permiso, o la faena ya salió de "En Traslado": se reintenta
+      // en el próximo ciclo; _sincronizarSeguimiento se encarga de detener el
+      // timer apenas se recargue el estado.
+    }
   }
 
   Future<void> _avanzarEstado(FaenaDetalle actual) async {
@@ -40,6 +102,7 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
     try {
       await context.read<FaenaService>().actualizarEstado(widget.faenaId, siguienteEstado);
       if (!mounted) return;
+      _sincronizarSeguimiento(siguienteEstado);
       setState(_cargar);
     } catch (_) {
       if (!mounted) return;
@@ -54,6 +117,22 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
   Future<void> _llamar(String telefono) async {
     final uri = Uri(scheme: 'tel', path: telefono);
     if (await canLaunchUrl(uri)) await launchUrl(uri);
+  }
+
+  Future<void> _copiarLinkSeguimiento(String url) async {
+    await Clipboard.setData(ClipboardData(text: url));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Link copiado')),
+    );
+  }
+
+  Future<void> _compartirPorWhatsApp(String url) async {
+    final mensaje = Uri.encodeComponent(
+      'Puedes seguir en vivo la llegada de la grúa aquí: $url',
+    );
+    final uri = Uri.parse('https://wa.me/?text=$mensaje');
+    if (await canLaunchUrl(uri)) await launchUrl(uri, mode: LaunchMode.externalApplication);
   }
 
   Future<void> _abrirMapa(String direccion, String comuna) async {
@@ -119,6 +198,37 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
 
               if (faena.observaciones.isNotEmpty)
                 _seccion('Observaciones técnicas', [Text(faena.observaciones)]),
+
+              _seccion('Seguimiento en vivo para el cliente', [
+                Text(
+                  faena.estadoTerreno == 'en_traslado'
+                      ? 'Se está compartiendo tu ubicación. Envíale este link al cliente para que vea la grúa en el mapa:'
+                      : 'Este link se activa solo mientras marques "En Traslado". Puedes compartirlo antes igual.',
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                ),
+                const SizedBox(height: 8),
+                SelectableText(faena.trackingUrl, style: const TextStyle(fontSize: 13)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _copiarLinkSeguimiento(faena.trackingUrl),
+                        icon: const Icon(Icons.copy_outlined, size: 18),
+                        label: const Text('Copiar'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _compartirPorWhatsApp(faena.trackingUrl),
+                        icon: const Icon(Icons.share_outlined, size: 18),
+                        label: const Text('WhatsApp'),
+                      ),
+                    ),
+                  ],
+                ),
+              ]),
 
               _seccion('Contacto del cliente', [
                 Text(faena.cliente.nombre),

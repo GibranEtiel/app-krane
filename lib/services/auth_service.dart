@@ -8,25 +8,43 @@ import '../config/api_config.dart';
 /// del operador en la app.
 class AuthService extends ChangeNotifier {
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
-  final Dio _authDio = Dio(BaseOptions(baseUrl: ApiConfig.baseUrl));
+  late Dio _authDio;
 
   static const _kAccessKey = 'krane_access_token';
   static const _kRefreshKey = 'krane_refresh_token';
   static const _kNombreKey = 'krane_operador_nombre';
+  static const _kBaseUrlKey = 'krane_base_url';
 
   String? accessToken;
   String? refreshToken;
   String? nombreOperador;
   bool isLoading = true;
 
+  /// URL del backend en uso. Empieza con el valor por defecto de ApiConfig,
+  /// pero se puede cambiar en tiempo real desde la pantalla de Configuración
+  /// (útil cuando se demuestra la app en una red distinta, sin recompilar).
+  String baseUrl = ApiConfig.baseUrl;
+
   bool get isAuthenticated => accessToken != null;
 
   /// Se llama una vez al iniciar la app para restaurar la sesión guardada.
   Future<void> cargarSesion() async {
+    baseUrl = await _storage.read(key: _kBaseUrlKey) ?? ApiConfig.baseUrl;
+    _authDio = Dio(BaseOptions(baseUrl: baseUrl));
+
     accessToken = await _storage.read(key: _kAccessKey);
     refreshToken = await _storage.read(key: _kRefreshKey);
     nombreOperador = await _storage.read(key: _kNombreKey);
     isLoading = false;
+    notifyListeners();
+  }
+
+  /// Cambia el servidor al que apunta la app y lo deja guardado para la
+  /// próxima vez que se abra.
+  Future<void> actualizarServidor(String nuevaUrl) async {
+    baseUrl = nuevaUrl;
+    _authDio.options.baseUrl = nuevaUrl;
+    await _storage.write(key: _kBaseUrlKey, value: nuevaUrl);
     notifyListeners();
   }
 
