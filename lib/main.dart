@@ -46,10 +46,10 @@ class KraneOperadorApp extends StatelessWidget {
               ],
               supportedLocales: const [Locale('es', 'CL')],
               theme: ThemeData(
-                colorSchemeSeed: const Color(0xFFF57C00),
+                colorSchemeSeed: const Color(0xFF0D6EFD),
                 useMaterial3: true,
                 appBarTheme: const AppBarTheme(
-                  backgroundColor: Color(0xFFF57C00),
+                  backgroundColor: Color(0xFF0D6EFD),
                   foregroundColor: Colors.white,
                 ),
               ),

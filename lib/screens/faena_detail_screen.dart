@@ -249,7 +249,7 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
                 ElevatedButton.icon(
                   onPressed: _actualizando ? null : () => _avanzarEstado(faena),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFF57C00),
+                    backgroundColor: const Color(0xFF0D6EFD),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

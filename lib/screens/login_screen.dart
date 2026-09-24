@@ -69,7 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.construction, size: 64, color: Color(0xFFF57C00)),
+                  const Icon(Icons.construction, size: 64, color: Color(0xFF0D6EFD)),
                   const SizedBox(height: 12),
                   const Text(
                     'KraneChile',
@@ -106,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ElevatedButton(
                     onPressed: _cargando ? null : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFF57C00),
+                      backgroundColor: const Color(0xFF0D6EFD),
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

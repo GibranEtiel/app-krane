@@ -85,7 +85,7 @@ class _ConfiguracionScreenState extends State<ConfiguracionScreen> {
               child: ElevatedButton(
                 onPressed: _guardando ? null : _guardar,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFF57C00),
+                  backgroundColor: const Color(0xFF0D6EFD),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
