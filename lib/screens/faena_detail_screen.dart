@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:geolocator/geolocator.dart';
@@ -9,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../models/faena.dart';
 import '../services/faena_service.dart';
+import '../services/ubicacion_background_service.dart';
 import '../widgets/estado_badge.dart';
 
 class FaenaDetailScreen extends StatefulWidget {
@@ -23,19 +22,13 @@ class FaenaDetailScreen extends StatefulWidget {
 class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
   late Future<FaenaDetalle> _futureDetalle;
   bool _actualizando = false;
-  Timer? _timerUbicacion;
+  bool _siguiendoUbicacion = false;
   final _formatoFecha = DateFormat('EEEE dd/MM/yyyy · HH:mm', 'es_CL');
 
   @override
   void initState() {
     super.initState();
     _cargar();
-  }
-
-  @override
-  void dispose() {
-    _timerUbicacion?.cancel();
-    super.dispose();
   }
 
   void _cargar() {
@@ -55,8 +48,12 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
     }
   }
 
+  /// El envío ahora corre en un servicio en primer plano (ver
+  /// UbicacionBackgroundService) que sigue vivo aunque el operador minimice
+  /// la app o salga de esta pantalla — antes se cortaba porque dependía de
+  /// un Timer atado al ciclo de vida de este widget.
   Future<void> _iniciarSeguimiento() async {
-    if (_timerUbicacion != null) return;
+    if (_siguiendoUbicacion) return;
 
     var permiso = await Geolocator.checkPermission();
     if (permiso == LocationPermission.denied) {
@@ -66,31 +63,44 @@ class _FaenaDetailScreenState extends State<FaenaDetailScreen> {
       return;
     }
 
-    _enviarUbicacionActual();
-    _timerUbicacion = Timer.periodic(const Duration(seconds: 15), (_) => _enviarUbicacionActual());
+    // Compartir la ubicación con la app minimizada requiere el permiso
+    // "Permitir todo el tiempo". Desde Android 11, el sistema no deja pedirlo
+    // en el mismo diálogo que el permiso normal: hay que guiar al operador a
+    // Ajustes para activarlo aparte.
+    if (permiso != LocationPermission.always && mounted) {
+      final irAAjustes = await showDialog<bool>(
+        context: context,
+        builder: (_) => AlertDialog(
+          title: const Text('Ubicación en segundo plano'),
+          content: const Text(
+            'Para que el cliente pueda seguir la grúa aunque minimices la app, '
+            'activa "Permitir todo el tiempo" en el permiso de ubicación.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Ahora no'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ir a Ajustes'),
+            ),
+          ],
+        ),
+      );
+      if (irAAjustes == true) {
+        await Geolocator.openAppSettings();
+      }
+    }
+
+    await UbicacionBackgroundService.iniciar(widget.faenaId);
+    _siguiendoUbicacion = true;
   }
 
   void _detenerSeguimiento() {
-    _timerUbicacion?.cancel();
-    _timerUbicacion = null;
-  }
-
-  Future<void> _enviarUbicacionActual() async {
-    final faenaService = context.read<FaenaService>();
-    try {
-      final posicion = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(accuracy: LocationAccuracy.high),
-      );
-      await faenaService.actualizarUbicacion(
-        widget.faenaId,
-        posicion.latitude,
-        posicion.longitude,
-      );
-    } catch (_) {
-      // Sin GPS, sin permiso, o la faena ya salió de "En Traslado": se reintenta
-      // en el próximo ciclo; _sincronizarSeguimiento se encarga de detener el
-      // timer apenas se recargue el estado.
-    }
+    if (!_siguiendoUbicacion) return;
+    UbicacionBackgroundService.detener();
+    _siguiendoUbicacion = false;
   }
 
   Future<void> _avanzarEstado(FaenaDetalle actual) async {

@@ -9,10 +9,12 @@ import 'services/api_client.dart';
 import 'services/auth_service.dart';
 import 'services/documento_service.dart';
 import 'services/faena_service.dart';
+import 'services/ubicacion_background_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_CL', null);
+  await UbicacionBackgroundService.inicializar();
   runApp(const KraneOperadorApp());
 }
 
